@@ -1,51 +1,66 @@
-int _printf(const char * const format, ...)
+#include "main.h"
 
-/* Implementation of the _printf function that takes a format string and variable number of arguments */
-/* The format string specifies the format of the output string, with placeholders marked by conversion specifiers */
-/* Returns the number of characters printed, or -1 if an error occurs */
+void print_buffer(char buffer[], int *buff_ind);
 
+/**
+ * _printf - Printf function
+ * @format: format.
+ * Return: Printed chars.
+ */
+int _printf(const char *format, ...)
 {
-    /* Definition of a struct array that maps conversion specifiers to their corresponding function */
-    convert_match m[] = {
-        {"%s", printf_string}, {"%c", printf_char},
-        {"%%", printf_37},
-        {"%i", printf_int}, {"%d", printf_dec}, {"%r", printf_srev},
-        {"%R", printf_rot13}, {"%b", printf_bin}, {"%u", printf_unsigned},
-        {"%o", printf_oct}, {"%x", printf_hex}, {"%X", printf_HEX},
-        {"%S", printf_exclusive_string}, {"%p", printf_pointer}
-    };
+	int i, printed = 0, printed_chars = 0;
+	int flags, width, precision, size, buff_ind = 0;
+	va_list list;
+	char buffer[BUFF_SIZE];
 
-    va_list args;
-    int i = 0, j, len = 0;
+	if (format == NULL)
+		return (-1);
 
-    va_start(args, format);
+	va_start(list, format);
 
-    /* Check if the format string is null or empty */
-    if (format == NULL || (format[0] == '%' && format[1] == '\0'))
-        return (-1);
+	for (i = 0; format && format[i] != '\0'; i++)
+	{
+		if (format[i] != '%')
+		{
+			buffer[buff_ind++] = format[i];
+			if (buff_ind == BUFF_SIZE)
+				print_buffer(buffer, &buff_ind);
+			/* write(1, &format[i], 1);*/
+			printed_chars++;
+		}
+		else
+		{
+			print_buffer(buffer, &buff_ind);
+			flags = get_flags(format, &i);
+			width = get_width(format, &i, list);
+			precision = get_precision(format, &i, list);
+			size = get_size(format, &i);
+			++i;
+			printed = handle_print(format, &i, list, buffer,
+				flags, width, precision, size);
+			if (printed == -1)
+				return (-1);
+			printed_chars += printed;
+		}
+	}
 
-Here:
-    /* Loop through the format string and look for conversion specifiers */
-    while (format[i] != '\0')
-    {
-        /* Loop through the array of conversion specifiers and call the corresponding function */
-        j = 13;
-        while (j >= 0)
-        {
-            if (m[j].id[0] == format[i] && m[j].id[1] == format[i + 1])
-            {
-                len += m[j].f(args);
-                i = i + 2;
-                goto Here;
-            }
-            j--;
-        }
-        /* If no conversion specifier is found, print the character */
-        _putchar(format[i]);
-        len++;
-        i++;
-    }
+	print_buffer(buffer, &buff_ind);
 
-    va_end(args);
-    return (len);
+	va_end(list);
+
+	return (printed_chars);
+}
+
+/**
+ * print_buffer - Prints the contents of the buffer if it exist
+ * @buffer: Array of chars
+ * @buff_ind: Index at which to add next char, represents the length.
+ */
+void print_buffer(char buffer[], int *buff_ind)
+{
+	if (*buff_ind > 0)
+		write(1, &buffer[0], *buff_ind);
+
+	*buff_ind = 0;
 }
